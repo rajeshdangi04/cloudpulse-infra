@@ -1,0 +1,86 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'ap-south-1'
+    }
+
+    triggers {
+        githubPush()
+    }
+
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'plan', 'destroy'], description: 'Terraform action to run')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/<your-username>/cloudpulse-infra.git'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Lint & Validate') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform fmt -check'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+
+        stage('Approval') {
+            when { expression { params.ACTION != 'plan' } }
+            steps {
+                input message: "Proceed with terraform ${params.ACTION}?", ok: 'Yes, Proceed'
+            }
+        }
+
+        stage('Terraform Apply') {
+            when { expression { params.ACTION == 'apply' } }
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply tfplan'
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when { expression { params.ACTION == 'destroy' } }
+            steps {
+                dir('terraform') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            mail to: 'umeshdangi@gmail.com',
+                 subject: "✅ Infra ${params.ACTION} #${BUILD_NUMBER} Success",
+                 body: "Terraform ${params.ACTION} completed successfully!\n\nBuild: ${BUILD_URL}"
+        }
+        failure {
+            mail to: 'umeshdangi@gmail.com',
+                 subject: "❌ Infra ${params.ACTION} #${BUILD_NUMBER} Failed",
+                 body: "Terraform ${params.ACTION} failed!\n\nCheck logs: ${BUILD_URL}"
+        }
+    }
+}
