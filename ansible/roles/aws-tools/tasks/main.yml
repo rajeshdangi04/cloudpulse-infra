@@ -1,4 +1,9 @@
 ---
+- name: Install unzip
+  package:
+    name: unzip
+    state: present
+    
 - name: Install AWS CLI
   shell: |
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscli.zip
@@ -12,3 +17,20 @@
     url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
     dest: "{{ kubectl_dest }}"
     mode: '0755'
+
+- name: Install Git
+  yum:
+    name: git
+    state: present
+
+- name: Add HashiCorp repository
+  get_url:
+    url: https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+    dest: /etc/yum.repos.d/hashicorp.repo
+    mode: '0644'
+
+- name: Install Terraform
+  yum:
+    name: terraform
+    state: present
+
