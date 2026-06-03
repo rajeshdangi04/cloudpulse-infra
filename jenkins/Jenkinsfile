@@ -9,6 +9,10 @@ pipeline {
         githubPush()
     }
 
+     options {
+        ansiColor('xterm')
+    }
+
     parameters {
         choice(name: 'ACTION', choices: ['apply', 'plan', 'destroy'], description: 'Terraform action to run')
     }
@@ -16,7 +20,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/<your-username>/cloudpulse-infra.git'
+                git branch: 'main', url: 'https://github.com/rajeshdangi04/cloudpulse-infra.git'
             }
         }
 
